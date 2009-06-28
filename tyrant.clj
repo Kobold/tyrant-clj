@@ -38,6 +38,20 @@
 	byte-count (.read stream buf)]
     (take byte-count buf)))
 
+(defn tyrant-put
+  "Put a given key and value into a server running on localhost."
+  [key value]
+  (with-open [sock (Socket. "localhost" default-port)
+	      in (.getInputStream sock)]
+    (send-bytes sock
+		[:byte   0xC8]
+		[:byte   0x10]
+		[:dword  (count key)]
+		[:dword  (count value)]
+		[:string key]
+		[:string value])
+    (inputstream-seq in)))
+
 (defn tyrant-get
   "Get a given tyrant key from a server running on localhost."
   [key]
@@ -48,4 +62,4 @@
 		[:byte   0x30]
 		[:dword  (count key)]
 		[:string key])
-    (println (inputstream-seq in))))
+    (inputstream-seq in)))
