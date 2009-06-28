@@ -11,20 +11,6 @@
     :dword  (map #(.byteValue (bit-shift-right value %)) [24 16 8 0])
     :string (.getBytes value "ASCII")))
 
-(defn format-bytes
-  "Given a set of format fields with values, return a sequence of bytes to go
-  out on the wire."
-  [& fields]
-  (apply concat (map format-field fields)))
-
-(defn get-request
-  "Creates a request to get a given key."
-  [key]
-  (format-bytes [:byte   0xC8]
-		[:byte   0x30]
-		[:dword  (count key)]
-		[:string key]))
-
 (defn make-byte-array
   "Convert the seq s into a byte array. Wow this is painful."
   [s]
@@ -38,6 +24,13 @@
 	  (recur (rest is) (rest xs)))))
     a))
 
+(defn send-bytes
+  "Given a socket and a set of format fields with values, format the bytes and
+  send them out on the wire."
+  [sock & fields]
+  (.write (.getOutputStream sock)
+	  (make-byte-array (apply concat (map format-field fields)))))
+
 (defn inputstream-seq
   "Given an input stream, return a seq of whatever is ready to read."
   [stream]
@@ -49,7 +42,10 @@
   "Get a given tyrant key from a server running on localhost."
   [key]
   (with-open [sock (Socket. "localhost" default-port)
-	      in (.getInputStream sock)
-	      out (.getOutputStream sock)]
-    (.write out (make-byte-array (get-request key)))
+	      in (.getInputStream sock)]
+    (send-bytes sock
+		[:byte   0xC8]
+		[:byte   0x30]
+		[:dword  (count key)]
+		[:string key])
     (println (inputstream-seq in))))
