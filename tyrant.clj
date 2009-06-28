@@ -1,7 +1,14 @@
 (ns tyrant
   (:import (java.net Socket)))
 
+(def magic-constant 0xC8)
 (def default-port 1978)
+
+(defmacro with-socket
+  "Execute body with a socket bound to local var."
+  [[var] & body]
+  `(with-open [~var (Socket. "localhost" default-port)]
+     ~@body))
 
 (defn format-field
   "Serialize a datafield down to a sequence of bytes based upon its type."
@@ -31,35 +38,36 @@
   (.write (.getOutputStream sock)
 	  (make-byte-array (apply concat (map format-field fields)))))
 
-(defn inputstream-seq
-  "Given an input stream, return a seq of whatever is ready to read."
-  [stream]
+(defn socket-seq
+  "Given a socket, return a seq of whatever is ready to read."
+  [socket]
   (let [buf (make-array Byte/TYPE 1024)
+	stream (.getInputStream socket)
 	byte-count (.read stream buf)]
     (take byte-count buf)))
 
 (defn tyrant-put
   "Put a given key and value into a server running on localhost."
   [key value]
-  (with-open [sock (Socket. "localhost" default-port)
-	      in (.getInputStream sock)]
-    (send-bytes sock
-		[:byte   0xC8]
-		[:byte   0x10]
-		[:dword  (count key)]
-		[:dword  (count value)]
-		[:string key]
-		[:string value])
-    (inputstream-seq in)))
+  (with-socket
+   [sock]
+   (send-bytes sock
+	       [:byte   magic-constant]
+	       [:byte   0x10]
+	       [:dword  (count key)]
+	       [:dword  (count value)]
+	       [:string key]
+	       [:string value])
+   (socket-seq sock)))
 
 (defn tyrant-get
   "Get a given tyrant key from a server running on localhost."
   [key]
-  (with-open [sock (Socket. "localhost" default-port)
-	      in (.getInputStream sock)]
-    (send-bytes sock
-		[:byte   0xC8]
-		[:byte   0x30]
-		[:dword  (count key)]
-		[:string key])
-    (inputstream-seq in)))
+  (with-socket
+   [sock]
+   (send-bytes sock
+	       [:byte   magic-constant]
+	       [:byte   0x30]
+	       [:dword  (count key)]
+	       [:string key])
+   (socket-seq sock)))
