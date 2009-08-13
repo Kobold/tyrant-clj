@@ -1,0 +1,15 @@
+This is a totally unfinished Clojure interface to Tokyo Tyrant. I thought I
+was going to need it for a business situation, but then the situation
+changed.
+
+I won't be developing it any further. If you want to use this code in any way,
+go ahead. This is licensed under the WTFPL.
+
+This is what's implemented so far:
+    
+    user=> (use 'tyrant)     
+    nil
+    user=> (tyrant-put "a" "b")
+    (0)
+    user=> (tyrant-get "a")
+    (0 0 0 0 0)
